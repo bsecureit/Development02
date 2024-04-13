@@ -271,6 +271,8 @@ public:
 
     std::wstring GetPlainText(const CopyRequest& req) const;
 
+    std::wstring GetWithControlSequences(const CopyRequest& req) const;
+
     std::string GenHTML(const CopyRequest& req,
                         const int fontHeightPoints,
                         const std::wstring_view fontFaceName,
@@ -285,7 +287,8 @@ public:
                        const bool isIntenseBold,
                        std::function<std::tuple<COLORREF, COLORREF, COLORREF>(const TextAttribute&)> GetAttributeColors) const noexcept;
 
-    void Serialize(const wchar_t* destination) const;
+    void SerializeToPath(const wchar_t* destination) const;
+    void ChunkedSerialize(const size_t writeThreshold, const std::wstring prefix, const CopyRequest* copyReq, std::function<void(std::wstring& buffer, const bool isDone)> callback) const;
 
     struct PositionInformation
     {

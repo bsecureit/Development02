@@ -2103,6 +2103,32 @@ std::wstring TextBuffer::GetPlainText(const CopyRequest& req) const
 }
 
 // Routine Description:
+// - Retrieves the text data from the buffer *with* ANSI escape code control sequences and presents it in a clipboard-ready format.
+// Arguments:
+// - req - the copy request having the bounds of the selected region and other related configuration flags.
+// Return Value:
+// - The text and control sequence data from the selected region of the text buffer. Empty if the copy request is invalid.
+std::wstring TextBuffer::GetWithControlSequences(const CopyRequest& req) const
+{
+    if (req.beg > req.end)
+    {
+        return {};
+    }
+
+    std::wstring selectedText;
+
+    ChunkedSerialize(0, L"", &req, [&](std::wstring& buffer, bool isDone) {
+        if (isDone)
+        {
+            // We don't actually care about the old selectedText / new buffer value, just want an efficient way to get the buffer contents.
+            selectedText.swap(buffer);
+        }
+    });
+
+    return selectedText;
+}
+
+// Routine Description:
 // - Generates a CF_HTML compliant structure from the selected region of the buffer
 // Arguments:
 // - req - the copy request having the bounds of the selected region and other related configuration flags.
@@ -2533,17 +2559,36 @@ void TextBuffer::_AppendRTFText(std::string& contentBuilder, const std::wstring_
     }
 }
 
-void TextBuffer::Serialize(const wchar_t* destination) const
+void TextBuffer::SerializeToPath(const wchar_t* destination) const
 {
     const wil::unique_handle file{ CreateFileW(destination, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr) };
     THROW_LAST_ERROR_IF(!file);
 
     static constexpr size_t writeThreshold = 32 * 1024;
+    ChunkedSerialize(writeThreshold, L"\uFEFF", nullptr, [&](std::wstring& buffer, bool /* isDone */) {
+        const auto fileSize = gsl::narrow<DWORD>(buffer.size() * sizeof(wchar_t));
+        DWORD bytesWritten = 0;
+        THROW_IF_WIN32_BOOL_FALSE(WriteFile(file.get(), buffer.data(), fileSize, &bytesWritten, nullptr));
+        THROW_WIN32_IF_MSG(ERROR_WRITE_FAULT, bytesWritten != fileSize, "failed to write");
+        buffer.clear();
+    });
+}
+
+// Routine Description:
+// - Serializes the text buffer in chunks including ANSI escape code control sequences, and passes those chunks to the callback once they're large enough.
+// Arguments:
+// - writeThreshold - How big the chunk needs to be before passing it to the `chunkReadyCallbcak`. If 0, won't pass to the `chunkReadyCallback` until fully done serializing (effectively turns off the chunking mechanism).
+// - prefix - A string to put at the beginning of the very first chunk.
+// - copyReq - If present, controls the bounds of the selected region and other related configuration flags. If not present, the whole TextBuffer is serialized.
+// - chunkReadyCallback - Called with the chunk when the chunk is bigger than the `writeThreshold` (if non-zero) and at the very end of the serialization process (in which case `isDone` will be `true`).
+void TextBuffer::ChunkedSerialize(const size_t writeThreshold, const std::wstring prefix, const CopyRequest* copyReq, std::function<void(std::wstring& chunk, const bool isDone)> chunkReadyCallback) const
+{
     std::wstring buffer;
     buffer.reserve(writeThreshold + writeThreshold / 2);
-    buffer.push_back(L'\uFEFF');
+    buffer += prefix;
 
-    const til::CoordType lastRowWithText = GetLastNonSpaceCharacter(nullptr).y;
+    const til::CoordType firstRow = copyReq != nullptr ? copyReq->beg.y : 0;
+    const til::CoordType lastRow = copyReq != nullptr ? copyReq->end.y : GetLastNonSpaceCharacter(nullptr).y;
     CharacterAttributes previousAttr = CharacterAttributes::Unused1;
     TextColor previousFg;
     TextColor previousBg;
@@ -2552,7 +2597,7 @@ void TextBuffer::Serialize(const wchar_t* destination) const
 
     // This iterates through each row. The exit condition is at the end
     // of the for() loop so that we can properly handle file flushing.
-    for (til::CoordType currentRow = 0;; currentRow++)
+    for (til::CoordType currentRow = firstRow;; currentRow++)
     {
         const auto& row = GetRowByOffset(currentRow);
 
@@ -2567,11 +2612,36 @@ void TextBuffer::Serialize(const wchar_t* destination) const
             buffer.append(til::at(mappings, idx));
         }
 
-        const auto& runs = row.Attributes().runs();
+        const auto moreRowsRemaining = currentRow < lastRow;
+
+        // Need to store this off into a local to avoid dangling references.
+        const auto rowInfo = [&] {
+            if (copyReq != nullptr)
+            {
+                const auto [rowBeg, rowEnd, copyAddLineBreak] = _RowCopyHelper(*copyReq, currentRow, row);
+                const auto rowBegU16 = gsl::narrow_cast<uint16_t>(rowBeg);
+                const auto rowEndU16 = gsl::narrow_cast<uint16_t>(rowEnd);
+
+                const auto runs = row.Attributes().slice(rowBegU16, rowEndU16).runs();
+                const int startX = rowBeg;
+                const bool addLineBreak = copyAddLineBreak && currentRow != lastRow;
+                return std::tuple{ runs, startX, addLineBreak };
+            }
+            else
+            {
+                const auto runs = row.Attributes().runs();
+                const int startX = 0;
+                const bool addLineBreak = !row.WasWrapForced() || !moreRowsRemaining;
+                return std::tuple{ runs, startX, addLineBreak };
+            }
+        }();
+        const auto [runs, startX, addLineBreak] = rowInfo;
+
         auto it = runs.begin();
         const auto end = runs.end();
-        const auto last = end - 1;
-        til::CoordType oldX = 0;
+        // Don't try to get end-1 if it's an empty iterator; in this case we're going to ignore the `last` value anyway so just use `end`.
+        const auto last = it == end ? end : end - 1;
+        til::CoordType oldX = startX;
 
         for (; it != end; ++it)
         {
@@ -2756,27 +2826,21 @@ void TextBuffer::Serialize(const wchar_t* destination) const
             {
                 // This can result in oldX > newX, but that's okay because GetText()
                 // is robust against that and returns an empty string.
-                newX = row.MeasureRight();
+                newX = std::min(newX, row.MeasureRight());
             }
 
             buffer.append(row.GetText(oldX, newX));
             oldX = newX;
         }
 
-        const auto moreRowsRemaining = currentRow < lastRowWithText;
-
-        if (!row.WasWrapForced() || !moreRowsRemaining)
+        if (addLineBreak)
         {
             buffer.append(L"\r\n");
         }
 
-        if (buffer.size() >= writeThreshold || !moreRowsRemaining)
+        if ((writeThreshold > 0 && buffer.size() >= writeThreshold) || !moreRowsRemaining)
         {
-            const auto fileSize = gsl::narrow<DWORD>(buffer.size() * sizeof(wchar_t));
-            DWORD bytesWritten = 0;
-            THROW_IF_WIN32_BOOL_FALSE(WriteFile(file.get(), buffer.data(), fileSize, &bytesWritten, nullptr));
-            THROW_WIN32_IF_MSG(ERROR_WRITE_FAULT, bytesWritten != fileSize, "failed to write");
-            buffer.clear();
+            chunkReadyCallback(buffer, !moreRowsRemaining);
         }
 
         if (!moreRowsRemaining)

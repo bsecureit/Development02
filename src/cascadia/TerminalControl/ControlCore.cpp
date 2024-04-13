@@ -568,7 +568,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             else if (vkey == VK_RETURN && !mods.IsCtrlPressed() && !mods.IsAltPressed())
             {
                 // [Shift +] Enter --> copy text
-                CopySelectionToClipboard(mods.IsShiftPressed(), nullptr);
+                CopySelectionToClipboard(mods.IsShiftPressed(), false, nullptr);
                 _terminal->ClearSelection();
                 _updateSelectionUI();
                 return true;
@@ -1307,9 +1307,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     //     Windows Clipboard (CascadiaWin32:main.cpp).
     // Arguments:
     // - singleLine: collapse all of the text to one line
+    // - withControlSequences: if enabled, the copied plain text contains color/style ANSI escape codes from the selection
     // - formats: which formats to copy (defined by action's CopyFormatting arg). nullptr
     //             if we should defer which formats are copied to the global setting
     bool ControlCore::CopySelectionToClipboard(bool singleLine,
+                                               bool withControlSequences,
                                                const Windows::Foundation::IReference<CopyFormat>& formats)
     {
         ::Microsoft::Terminal::Core::Terminal::TextCopyData payload;
@@ -1331,7 +1333,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
             // extract text from buffer
             // RetrieveSelectedTextFromBuffer will lock while it's reading
-            payload = _terminal->RetrieveSelectedTextFromBuffer(singleLine, copyHtml, copyRtf);
+            payload = _terminal->RetrieveSelectedTextFromBuffer(singleLine, withControlSequences, copyHtml, copyRtf);
         }
 
         copyToClipboard(payload.plainText, payload.html, payload.rtf);
