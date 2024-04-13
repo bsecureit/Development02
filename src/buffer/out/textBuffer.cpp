@@ -2577,7 +2577,7 @@ void TextBuffer::SerializeToPath(const wchar_t* destination) const
 // Routine Description:
 // - Serializes the text buffer in chunks including ANSI escape code control sequences, and passes those chunks to the callback once they're large enough.
 // Arguments:
-// - writeThreshold - How big the chunk needs to be before passing it to the `chunkReadyCallbcak`. If 0, won't pass to the `chunkReadyCallback` until fully done serializing (effectively turns off the chunking mechanism).
+// - writeThreshold - How big the chunk needs to be before passing it to the `chunkReadyCallback`. If 0, won't pass to the `chunkReadyCallback` until fully done serializing (effectively turns off the chunking mechanism).
 // - prefix - A string to put at the beginning of the very first chunk.
 // - copyReq - If present, controls the bounds of the selected region and other related configuration flags. If not present, the whole TextBuffer is serialized.
 // - chunkReadyCallback - Called with the chunk when the chunk is bigger than the `writeThreshold` (if non-zero) and at the very end of the serialization process (in which case `isDone` will be `true`).
