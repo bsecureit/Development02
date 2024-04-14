@@ -289,6 +289,7 @@ public:
 
     void SerializeToPath(const wchar_t* destination) const;
     void ChunkedSerialize(const size_t writeThreshold, const std::wstring prefix, const CopyRequest* copyReq, std::function<void(std::wstring& buffer, const bool isDone)> callback) const;
+    void SerializeRow(const ROW& row, const til::CoordType startX, const til::CoordType endX, const bool addLineBreak, std::wstring& buffer, std::optional<TextAttribute>& previousTextAttr) const;
 
     struct PositionInformation
     {
