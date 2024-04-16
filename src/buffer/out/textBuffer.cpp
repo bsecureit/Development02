@@ -2102,12 +2102,13 @@ std::wstring TextBuffer::GetPlainText(const CopyRequest& req) const
     return selectedText;
 }
 
-// Routine Description:
-// - Retrieves the text data from the buffer *with* ANSI escape code control sequences and presents it in a clipboard-ready format.
+// Retrieves the text data from the buffer *with* ANSI escape code control sequences and presents it in
+//      a clipboard-ready format.
 // Arguments:
 // - req - the copy request having the bounds of the selected region and other related configuration flags.
 // Return Value:
-// - The text and control sequence data from the selected region of the text buffer. Empty if the copy request is invalid.
+// - The text and control sequence data from the selected region of the text buffer. Empty if the copy request
+//      is invalid.
 std::wstring TextBuffer::GetWithControlSequences(const CopyRequest& req) const
 {
     if (req.beg > req.end)
@@ -2128,7 +2129,7 @@ std::wstring TextBuffer::GetWithControlSequences(const CopyRequest& req) const
         const auto [startX, endX, reqAddLineBreak] = _RowCopyHelper(req, currentRow, row);
         const bool addLineBreak = reqAddLineBreak && currentRow != lastRow;
 
-        SerializeRow(row, startX, endX, addLineBreak, selectedText, previousTextAttr);
+        _SerializeRow(row, startX, endX, addLineBreak, selectedText, previousTextAttr);
     }
 
     return selectedText;
@@ -2591,7 +2592,7 @@ void TextBuffer::SerializeToPath(const wchar_t* destination) const
         const auto endX = row.GetReadableColumnCount();
         const bool addLineBreak = !row.WasWrapForced() || !moreRowsRemaining;
 
-        SerializeRow(row, startX, endX, addLineBreak, buffer, previousTextAttr);
+        _SerializeRow(row, startX, endX, addLineBreak, buffer, previousTextAttr);
 
         if (buffer.size() >= writeThreshold || !moreRowsRemaining)
         {
@@ -2609,16 +2610,17 @@ void TextBuffer::SerializeToPath(const wchar_t* destination) const
     }
 }
 
-// Routine Description:
-// - Serializes one row the text buffer including ANSI escape code control sequences.
+// Serializes one row of the text buffer including ANSI escape code control sequences.
 // Arguments:
 // - row - A reference to the row being serialized.
 // - startX - The first column (inclusive) to include in the serialized content.
 // - endX - The last column (exclusive) to include in the serialized content.
 // - addLineBreak - Whether to add a line break at the end of the serialized row.
 // - buffer - A string to write the serialized row into.
-// - previousTextAttr - Used for tracking state across multiple calls to `SerializeRow` for sequential rows. The value will be mutated by the call. The initial call should contain `nullopt`, and subsequent calls should pass the value that was written by the previous call.
-void TextBuffer::SerializeRow(const ROW& row, const til::CoordType startX, const til::CoordType endX, const bool addLineBreak, std::wstring& buffer, std::optional<TextAttribute>& previousTextAttr) const
+// - previousTextAttr - Used for tracking state across multiple calls to `_SerializeRow` for sequential rows.
+//      The value will be mutated by the call. The initial call should contain `nullopt`, and subsequent calls
+//      should pass the value that was written by the previous call.
+void TextBuffer::_SerializeRow(const ROW& row, const til::CoordType startX, const til::CoordType endX, const bool addLineBreak, std::wstring& buffer, std::optional<TextAttribute>& previousTextAttr) const
 {
     if (const auto lr = row.GetLineRendition(); lr != LineRendition::SingleWidth)
     {
@@ -2637,7 +2639,8 @@ void TextBuffer::SerializeRow(const ROW& row, const til::CoordType startX, const
 
     auto it = runs.begin();
     const auto end = runs.end();
-    // Don't try to get `end - 1` if it's an empty iterator; in this case we're going to ignore the `last` value anyway so just use `end`.
+    // Don't try to get `end - 1` if it's an empty iterator; in this case we're going to ignore the `last`
+    // value anyway so just use `end`.
     const auto last = it == end ? end : end - 1;
     til::CoordType oldX = startX;
 
