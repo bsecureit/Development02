@@ -98,6 +98,7 @@ static constexpr std::string_view RestartConnectionKey{ "restartConnection" };
 static constexpr std::string_view ToggleBroadcastInputKey{ "toggleBroadcastInput" };
 static constexpr std::string_view OpenScratchpadKey{ "experimental.openScratchpad" };
 static constexpr std::string_view OpenAboutKey{ "openAbout" };
+static constexpr std::string_view OpenFileDialogKey{ "openFileDialog" };
 
 static constexpr std::string_view ActionKey{ "action" };
 
@@ -362,6 +363,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
                 { ShortcutAction::SwapPane, RS_(L"SwapPaneCommandKey") },
                 { ShortcutAction::NewTab, RS_(L"NewTabCommandKey") },
                 { ShortcutAction::NextTab, RS_(L"NextTabCommandKey") },
+                { ShortcutAction::OpenFileDialog, RS_(L"OpenFileDialogCommandKey") },
                 { ShortcutAction::OpenNewTabDropdown, RS_(L"OpenNewTabDropdownCommandKey") },
                 { ShortcutAction::OpenSettings, RS_(L"OpenSettingsUICommandKey") },
                 { ShortcutAction::OpenTabColorPicker, RS_(L"OpenTabColorPickerCommandKey") },
