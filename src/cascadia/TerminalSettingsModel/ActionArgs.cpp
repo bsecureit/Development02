@@ -206,6 +206,11 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
             ss << RS_(L"CopyTextCommandKey").c_str();
         }
 
+        if (WithControlSequences())
+        {
+            ss << L", withControlSequences: true";
+        }
+
         if (!DismissSelection())
         {
             ss << L", dismissSelection: false";
