@@ -66,5 +66,8 @@ namespace Microsoft.Terminal.Control
         Boolean UseBackgroundImageForWindow { get; };
         Boolean RightClickContextMenu { get; };
         Boolean RepositionCursorWithMouse { get; };
+
+        // Non-serialized settings
+        Boolean HighContrastMode;
     };
 }

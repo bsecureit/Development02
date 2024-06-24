@@ -53,6 +53,16 @@ std::string_view Model::implementation::LoadStringResource(int resourceID)
     return { reinterpret_cast<const char*>(ptr), sz };
 }
 
+bool CascadiaSettings::HighContrastMode()
+{
+    return _highContrastMode;
+}
+
+void CascadiaSettings::HighContrastMode(bool value)
+{
+    _highContrastMode = value;
+}
+
 winrt::hstring CascadiaSettings::Hash() const noexcept
 {
     return _hash;

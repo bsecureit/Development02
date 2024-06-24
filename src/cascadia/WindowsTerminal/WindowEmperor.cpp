@@ -850,9 +850,10 @@ winrt::fire_and_forget WindowEmperor::_windowIsQuakeWindowChanged(winrt::Windows
     co_await wil::resume_foreground(this->_dispatcher);
     _checkWindowsForNotificationIcon();
 }
-winrt::fire_and_forget WindowEmperor::_windowRequestUpdateSettings()
+winrt::fire_and_forget WindowEmperor::_windowRequestUpdateSettings(bool highContrastEnabled)
 {
     // We MUST be on the main thread to update the settings. We will crash when trying to enumerate fragment extensions otherwise.
     co_await wil::resume_foreground(this->_dispatcher);
+    _app.Logic().SetHighContrastMode();
     _app.Logic().ReloadSettings();
 }

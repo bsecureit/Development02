@@ -62,7 +62,7 @@ private:
     void _numberOfWindowsChanged(const winrt::Windows::Foundation::IInspectable&, const winrt::Windows::Foundation::IInspectable&);
 
     winrt::fire_and_forget _windowIsQuakeWindowChanged(winrt::Windows::Foundation::IInspectable sender, winrt::Windows::Foundation::IInspectable args);
-    winrt::fire_and_forget _windowRequestUpdateSettings();
+    winrt::fire_and_forget _windowRequestUpdateSettings(bool highContrastEnabled);
 
     void _createMessageWindow();
 

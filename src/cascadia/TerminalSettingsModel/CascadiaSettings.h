@@ -112,6 +112,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         static winrt::hstring ApplicationDisplayName();
         static winrt::hstring ApplicationVersion();
         static bool IsPortableMode();
+        static bool HighContrastMode();
+        static void HighContrastMode(bool value);
         static void ExportFile(winrt::hstring path, winrt::hstring content);
 
         CascadiaSettings() noexcept = default;
@@ -155,6 +157,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         static const std::filesystem::path& _settingsPath();
         static const std::filesystem::path& _releaseSettingsPath();
         static winrt::hstring _calculateHash(std::string_view settings, const FILETIME& lastWriteTime);
+        static bool _highContrastMode;
 
         winrt::com_ptr<implementation::Profile> _createNewProfile(const std::wstring_view& name) const;
         Model::Profile _getProfileForCommandLine(const winrt::hstring& commandLine) const;
