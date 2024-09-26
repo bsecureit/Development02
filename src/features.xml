@@ -179,4 +179,11 @@
         </alwaysEnabledBrandingTokens>
     </feature>
 
+    <feature>
+        <name>Feature_DebugMode</name>
+        <description>Enables the debug mode setting</description>
+        <stage>AlwaysEnabled</stage>
+        <alwaysDisabledReleaseTokens/>
+    </feature>
+
 </featureStaging>
